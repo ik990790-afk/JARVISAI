@@ -26,10 +26,31 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Extract build kit
+      - name: Extract project
         run: |
           unzip -o JARVIS_AI_Mobile_Build_Kit.zip -d kit
           unzip -o kit/JARVIS_AI_Android_Source_Project.zip -d extracted
+
+      - name: Fix Java Kotlin compatibility
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("extracted/JarvisAI_Android_Project/app/build.gradle.kts")
+          s = p.read_text()
+          old = "    buildFeatures { compose = true }"
+          new = """    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = "17"
+    }
+
+    buildFeatures { compose = true }"""
+          assert old in s, "Configuration not found"
+          p.write_text(s.replace(old, new))
+          PY
 
       - name: Build APK
         run: |
